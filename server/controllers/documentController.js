@@ -2,7 +2,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import documentService from '../services/documentService.js';
-import geminiService from '../services/geminiService.js';
+import openrouterService from '../services/openrouterService.js';
 
 // Upload and classify document
 export const uploadAndClassifyDocument = asyncHandler(async (req, res) => {
@@ -95,14 +95,13 @@ export const getSupportedFileTypes = asyncHandler(async (req, res) => {
 // Check AI service health
 export const checkAIServiceHealth = asyncHandler(async (req, res) => {
     try {
-        // Test Gemini connection
-        const isHealthy = await geminiService.testConnection();
+        const isHealthy = await openrouterService.testConnection();
 
         if (!isHealthy) {
             return res.status(503).json(
                 new ApiResponse(
                     503,
-                    { healthy: false, service: 'Gemini AI' },
+                    { healthy: false, service: 'OpenRouter AI' },
                     'AI service is not responding'
                 )
             );
@@ -113,7 +112,7 @@ export const checkAIServiceHealth = asyncHandler(async (req, res) => {
                 200,
                 { 
                     healthy: true, 
-                    service: 'Gemini AI',
+                    service: 'OpenRouter AI',
                     timestamp: new Date().toISOString()
                 },
                 'AI service is healthy'
@@ -128,7 +127,7 @@ export const checkAIServiceHealth = asyncHandler(async (req, res) => {
                 503,
                 { 
                     healthy: false, 
-                    service: 'Gemini AI',
+                    service: 'OpenRouter AI',
                     error: error.message 
                 },
                 'AI service health check failed'

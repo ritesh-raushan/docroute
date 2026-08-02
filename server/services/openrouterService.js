@@ -1,19 +1,21 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenRouter from '@openrouter/sdk';
 import { config } from '../config/config.js';
 import { ApiError } from '../utils/ApiError.js';
 
-class GeminiService {
+class OpenRouterService {
     constructor() {
-        if (!config.geminiApiKey) {
-            throw new ApiError(500, 'Gemini API key is not configured');
+        if (!config.openrouterApiKey) {
+            throw new ApiError(500, 'OpenRouter API key is not configured');
         }
-        
-        this.genAI = new GoogleGenerativeAI(config.geminiApiKey);
-        this.model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        
-        // Classification prompt template
+
+        this.client = new OpenRouter({
+            apiKey: config.openrouterApiKey,
+        });
+
+        this.model = config.openrouterModel;
+
         this.classificationPrompt = `
-You are a professional document classification and routing assistant for back-office operations. 
+You are a professional document classification and routing assistant for back-office operations.
 
 Analyze the provided document content and classify it according to these document types:
 - invoice: Bills for goods/services provided
@@ -36,7 +38,7 @@ IMPORTANT: You must ALWAYS return your analysis in the following JSON format, ev
 {
     "documentType": "classified_type",
     "confidence": 0.95,
-    "department": "assigned_department", 
+    "department": "assigned_department",
     "routingConfidence": 0.90,
     "extractedData": {
         "key_information": "extracted values"
@@ -53,83 +55,78 @@ Document content:
 `;
     }
 
-    // Classify document content using Gemini
     async classifyDocument(documentContent) {
         try {
             if (!documentContent || typeof documentContent !== 'string') {
                 throw new ApiError(400, 'Document content is required and must be a string');
             }
 
-            const prompt = this.classificationPrompt + documentContent;
-            
-            const result = await this.model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+            const response = await this.client.chat.send({
+                model: this.model,
+                messages: [
+                    {
+                        role: 'user',
+                        content: this.classificationPrompt + documentContent,
+                    },
+                ],
+            });
 
-            // Parse JSON response from Gemini
+            const text = response.choices[0].message.content;
+
             let classificationResult;
             try {
-                // Extract JSON from response (in case there's extra text)
                 const jsonMatch = text.match(/\{[\s\S]*\}/);
                 if (!jsonMatch) {
                     throw new Error('No JSON found in response');
                 }
                 classificationResult = JSON.parse(jsonMatch[0]);
             } catch (parseError) {
-                console.error('Failed to parse Gemini response:', text);
-                
-                // Fallback: Create a default classification when JSON parsing fails
+                console.error('Failed to parse OpenRouter response:', text);
+
                 classificationResult = {
                     documentType: 'other',
                     confidence: 0.3,
                     department: 'general',
                     routingConfidence: 0.3,
                     extractedData: {
-                        note: 'AI could not classify this document properly'
+                        note: 'AI could not classify this document properly',
                     },
                     reasoning: 'Classification failed due to non-JSON response from AI model',
-                    suggestedActions: ['Manual review required', 'Check document format and content']
+                    suggestedActions: ['Manual review required', 'Check document format and content'],
                 };
-                
+
                 console.log('Using fallback classification due to parsing error');
             }
 
-            // Validate and sanitize the response
             return this.validateClassificationResult(classificationResult);
-
         } catch (error) {
             if (error instanceof ApiError) {
                 throw error;
             }
-            console.error('Gemini classification error:', error);
+            console.error('OpenRouter classification error:', error);
             throw new ApiError(500, 'Failed to classify document with AI model');
         }
     }
 
-    // Validate and sanitize classification result from Gemini
     validateClassificationResult(result) {
         const validDocumentTypes = Object.values(config.documentTypes);
         const validDepartments = Object.values(config.departments);
 
-        // Validate document type
         if (!result.documentType || !validDocumentTypes.includes(result.documentType.toLowerCase())) {
             result.documentType = config.documentTypes.OTHER;
         } else {
             result.documentType = result.documentType.toLowerCase();
         }
 
-        // Validate department
         if (!result.department || !validDepartments.includes(result.department.toLowerCase())) {
             result.department = config.departments.GENERAL;
         } else {
             result.department = result.department.toLowerCase();
         }
 
-        // Validate confidence scores
         result.confidence = this.validateConfidence(result.confidence);
         result.routingConfidence = this.validateConfidence(result.routingConfidence);
 
-        // Ensure required fields
         result.extractedData = result.extractedData || {};
         result.reasoning = result.reasoning || 'Classification completed';
         result.suggestedActions = Array.isArray(result.suggestedActions) ? result.suggestedActions : [];
@@ -137,26 +134,32 @@ Document content:
         return result;
     }
 
-    // Validate confidence score
     validateConfidence(confidence) {
         const numConfidence = parseFloat(confidence);
         if (isNaN(numConfidence) || numConfidence < 0 || numConfidence > 1) {
-            return 0.5; // Default confidence
+            return 0.5;
         }
         return numConfidence;
     }
 
-    // Test Gemini connection
     async testConnection() {
         try {
-            const result = await this.model.generateContent("Hello, please respond with 'Connection successful'");
-            const response = await result.response;
-            return response.text().includes('Connection successful');
+            const response = await this.client.chat.send({
+                model: this.model,
+                messages: [
+                    {
+                        role: 'user',
+                        content: "Hello, please respond with 'Connection successful'",
+                    },
+                ],
+            });
+
+            return response.choices[0].message.content.includes('Connection successful');
         } catch (error) {
-            console.error('Gemini connection test failed:', error);
+            console.error('OpenRouter connection test failed:', error);
             return false;
         }
     }
 }
 
-export default new GeminiService();
+export default new OpenRouterService();

@@ -1,7 +1,7 @@
 ﻿import fs from 'fs/promises';
 import pdfParse from 'pdf-parse/lib/pdf-parse.js';
 import { ApiError } from '../utils/ApiError.js';
-import geminiService from './geminiService.js';
+import openrouterService from './openrouterService.js';
 import { config } from '../config/config.js';
 
 class DocumentService {
@@ -130,8 +130,8 @@ class DocumentService {
 
             console.log(`Text extracted (${extractedText.length} characters). Classifying...`);
 
-            // Classify document using Gemini AI
-            const classification = await geminiService.classifyDocument(textToClassify);
+            // Classify document using AI
+            const classification = await openrouterService.classifyDocument(textToClassify);
 
             // Build complete response
             const result = this.buildClassificationResult(classification, {
@@ -178,8 +178,8 @@ class DocumentService {
 
             console.log(`Classifying text content (${textContent.length} characters)...`);
 
-            // Classify using Gemini AI
-            const classification = await geminiService.classifyDocument(textToClassify);
+            // Classify using AI
+            const classification = await openrouterService.classifyDocument(textToClassify);
 
             // Build response
             const result = this.buildClassificationResult(classification, {

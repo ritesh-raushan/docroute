@@ -8,8 +8,9 @@ export const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
     corsOrigin: process.env.CORS_ORIGIN || '*',
     
-    // Google Gemini API
-    geminiApiKey: process.env.GEMINI_API_KEY,
+    // OpenRouter AI
+    openrouterApiKey: process.env.OPENROUTER_API_KEY,
+    openrouterModel: process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-001',
     
     // File Upload Configuration
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB default
@@ -57,8 +58,8 @@ export const config = {
 
 // Validation function to ensure required config is present
 export const validateConfig = () => {
-    if (!config.geminiApiKey) {
-        throw new Error('GEMINI_API_KEY is required in environment variables');
+    if (!config.openrouterApiKey) {
+        throw new Error('OPENROUTER_API_KEY is required in environment variables');
     }
     
     console.log('✓ Configuration validated successfully');
