@@ -1,4 +1,4 @@
-import OpenRouter from '@openrouter/sdk';
+import { OpenRouter } from '@openrouter/sdk';
 import { config } from '../config/config.js';
 import { ApiError } from '../utils/ApiError.js';
 
@@ -62,13 +62,15 @@ Document content:
             }
 
             const response = await this.client.chat.send({
-                model: this.model,
-                messages: [
-                    {
-                        role: 'user',
-                        content: this.classificationPrompt + documentContent,
-                    },
-                ],
+                chatRequest: {
+                    model: this.model,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: this.classificationPrompt + documentContent,
+                        },
+                    ],
+                },
             });
 
             const text = response.choices[0].message.content;
@@ -145,13 +147,15 @@ Document content:
     async testConnection() {
         try {
             const response = await this.client.chat.send({
-                model: this.model,
-                messages: [
-                    {
-                        role: 'user',
-                        content: "Hello, please respond with 'Connection successful'",
-                    },
-                ],
+                chatRequest: {
+                    model: this.model,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: "Hello, please respond with 'Connection successful'",
+                        },
+                    ],
+                },
             });
 
             return response.choices[0].message.content.includes('Connection successful');
